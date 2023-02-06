@@ -12,7 +12,7 @@
 #include <map>
 
 #define RUN_NO_ADDR     0
-#define SENTINEL_VAL    -999.0
+#define SENTINEL_VAL    0.0
 
 // data structure used to represent a csv file
 // name: complete filename w/ path

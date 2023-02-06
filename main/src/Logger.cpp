@@ -1,6 +1,10 @@
 #include "Logger.h"
 
 Logger::Logger(){
+
+}
+
+void Logger::setup(){
     SD.begin(BUILTIN_SDCARD);
 
     // get previously used run number, use incremented and then save it back into EEPROM
@@ -8,7 +12,7 @@ Logger::Logger(){
     // if runNo == 255, then we need to reset it since byte's max size is 255
     if(runNo == 255){
         runNo = 0;
-        path = "run" + String(runNo) + "/";
+        path = "run0/";
     }
     else{
         path = "run" + String(++runNo) + "/";
