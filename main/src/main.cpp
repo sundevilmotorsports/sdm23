@@ -1,13 +1,9 @@
 #include <Arduino.h>
 #include "Logger.h"
 #include <Adafruit_GPS.h>
-#include <Wire.h>
-#include "SparkFun_ISM330DHCX.h"
+#include <FlexCAN_T4.h>
 
-SparkFun_ISM330DHCX myISM; 
-
-// Structs for X,Y,Z data
-sfe_ism_data_t accelData; 
+FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> Can0;
 
 Logger logger;
 
@@ -21,8 +17,7 @@ Adafruit_GPS GPS(&GPSSerial);
 // Set to 'true' if you want to debug and listen to the raw GPS sentences
 #define GPSECHO false
 
-uint32_t timer = 0;
-
+void canSniff(const CAN_message_t &msg);
 
 void setup()
 {
@@ -44,13 +39,6 @@ void setup()
   // also spit it out
   Serial.begin(115200);
 
-
-  Wire.begin();
-
-	if( !myISM.begin() ){
-		Serial.println("Did not begin.");
-		while(1);
-	}
   // 9600 NMEA is the default baud rate for Adafruit MTK GPS's- some use 4800
   GPS.begin(9600);
   // uncomment this line to turn on RMC (recommended minimum) and GGA (fix data) including altitude
@@ -60,41 +48,30 @@ void setup()
   // For parsing data, we don't suggest using anything but either RMC only or RMC+GGA since
   // the parser doesn't care about other sentences at this time
   // Set the update rate
-  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_2HZ); // 1 Hz update rate
+  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_5HZ); // 1 Hz update rate
   // For the parsing code to work nicely and have time to sort thru the data, and
   // print it out we don't suggest using anything higher than 1 Hz
 
   GPS.sendCommand(PMTK_SET_BAUD_9600);
 
+  Can0.begin();
+  Can0.setBaudRate(1000000);
+  Can0.setMaxMB(16);
+  Can0.enableFIFO();
+  Can0.enableFIFOInterrupt();
+  Can0.onReceive(canSniff);
+  Can0.mailboxStatus();
+
   pinMode(LED_BUILTIN, OUTPUT);
   delay(1000);
+}
 
-  // Ask for firmware version
-  //GPSSerial.println(PMTK_Q_RELEASE);
-	// Reset the device to default settings. This if helpful is you're doing multiple
-	// uploads testing different settings. 
-	myISM.deviceReset();
-
-	// Wait for it to finish reseting
-	while( !myISM.getDeviceReset() ){ 
-		delay(1);
-	} 
-
-	Serial.println("Reset.");
-	Serial.println("Applying settings.");
-	delay(100);
-	
-	myISM.setDeviceConfig();
-	myISM.setBlockDataUpdate();
-	
-	// Set the output data rate and precision of the accelerometer
-	myISM.setAccelDataRate(ISM_XL_ODR_104Hz);
-	myISM.setAccelFullScale(ISM_4g); 
-
-	// Turn on the accelerometer's filter and apply settings. 
-	myISM.setAccelFilterLP2();
-	myISM.setAccelSlopeFilter(ISM_LP_ODR_DIV_100);
-
+void canSniff(const CAN_message_t &msg) {
+  int reading = 0;
+  reading |= msg.buf[0] << 8;
+  reading |= msg.buf[1];
+  Serial.print("Overrun: " + String(msg.flags.overrun) + "\t");
+  Serial.println("CAN data: " + String(reading));
 }
 
 void loop() // run over and over again
@@ -102,6 +79,7 @@ void loop() // run over and over again
   // ok status led
   digitalWrite(LED_BUILTIN, HIGH);
 
+  Can0.events();
   
   // read data from the GPS in the 'main loop'
   char c = GPS.read();
@@ -121,7 +99,6 @@ void loop() // run over and over again
 
   //if(millis() - timer > 200){
   if(true){
-    timer = millis();
     //Serial.print("Fix: "); Serial.println((int)GPS.fix);
     //Serial.print(" quality: "); Serial.println((int)GPS.fixquality);
     if (GPS.fix) {
@@ -139,29 +116,6 @@ void loop() // run over and over again
       logger.addData("data", "ground speed (knots)", GPS.speed);
       //Serial.print("Angle: "); Serial.println(GPS.angle);
     }
-  }
-
-
-  
-  	// Check if both gyroscope and accelerometer data is available.
-	if( myISM.checkAccelStatus() ){
-		myISM.getAccel(&accelData);
-    /*
-		Serial.print("Accelerometer: ");
-		Serial.print("X: ");
-		Serial.print(accelData.xData);
-		Serial.print(" ");
-		Serial.print("Y: ");
-		Serial.print(accelData.yData);
-		Serial.print(" ");
-		Serial.print("Z: ");
-		Serial.println(accelData.zData);
-    */
-    logger.addData("data", "x acceleration (mG)", accelData.xData);
-    logger.addData("data", "y acceleration (mG)", accelData.yData);
-    logger.addData("data", "z acceleration (mG)", accelData.zData);
-	}
-  else {
   }
 
   logger.writeRow("data");
