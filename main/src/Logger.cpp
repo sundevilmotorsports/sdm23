@@ -124,7 +124,15 @@ bool Logger::writeRow(String filename){
 
         // print data
         for(size_t i = 0; i < files[key].currentRow.size(); i++){
-            file.print(files[key].currentRow[i]);
+            // if latitude or longitude, print with 4 decimal places
+            // both will be the last two in the list
+            if (files[key].currentRow.size() - i <= 2) {
+                file.print(files[key].currentRow[i], 4);
+            }
+            else {
+                file.print(files[key].currentRow[i]);
+            }
+            
             // if we arent at the last column, print a comma
             if(i != files[key].currentRow.size() - 1){
                 file.print(",");

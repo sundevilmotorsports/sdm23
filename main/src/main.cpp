@@ -7,14 +7,10 @@ FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> Can0;
 
 Logger logger;
 
-// what's the name of the hardware serial port?
 #define GPSSerial Serial2
 
-// Connect to the GPS on the hardware port
 Adafruit_GPS GPS(&GPSSerial);
 
-// Set GPSECHO to 'false' to turn off echoing the GPS data to the Serial console
-// Set to 'true' if you want to debug and listen to the raw GPS sentences
 #define GPSECHO false
 
 void canSniff(const CAN_message_t &msg);
@@ -28,30 +24,18 @@ void setup()
       "x acceleration (mG)",
       "y acceleration (mG)",
       "z acceleration (mG)",
+      "ground speed (knots)",
+      // the last two in this list should always be latitude and longitude
       "latitude",
-      "longitude",
-      "ground speed (knots)"
+      "longitude"
     }
   );
-  //while (!Serial);  // uncomment to have the sketch wait until Serial is ready
 
-  // connect at 115200 so we can read the GPS fast enough and echo without dropping chars
-  // also spit it out
   Serial.begin(115200);
 
-  // 9600 NMEA is the default baud rate for Adafruit MTK GPS's- some use 4800
   GPS.begin(9600);
-  // uncomment this line to turn on RMC (recommended minimum) and GGA (fix data) including altitude
-  //GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
-  // uncomment this line to turn on only the "minimum recommended" data
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCONLY);
-  // For parsing data, we don't suggest using anything but either RMC only or RMC+GGA since
-  // the parser doesn't care about other sentences at this time
-  // Set the update rate
-  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_5HZ); // 1 Hz update rate
-  // For the parsing code to work nicely and have time to sort thru the data, and
-  // print it out we don't suggest using anything higher than 1 Hz
-
+  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_5HZ);
   GPS.sendCommand(PMTK_SET_BAUD_9600);
 
   Can0.begin();
