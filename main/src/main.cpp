@@ -102,5 +102,10 @@ void loop() // run over and over again
     }
   }
 
+  if(Serial.available() > 0){
+    Serial.read();
+    logger.readFile("data");
+    Serial.println("Done reading");
+  }
   logger.writeRow("data");
 }

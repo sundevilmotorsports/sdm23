@@ -153,3 +153,24 @@ bool Logger::writeRow(String filename){
     }
     else return false;
 }
+void Logger::readFile(String filename){
+    // Opening file to be read  
+    String key = path + filename + ".csv";
+    File dataFile = SD.open(key.c_str());
+
+    // Check to ensure file is opened correctly
+    if(dataFile){
+        Serial.println(filename + " opened:");
+        
+        int c;
+        while((c = dataFile.read()) != -1){
+            Serial.write(c);
+        }
+    }
+    else{
+        Serial.println("Error opening " + filename + ".csv");
+    }
+    
+    // Close the file:
+    dataFile.close();
+}
