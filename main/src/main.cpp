@@ -4,7 +4,7 @@
 #include <FlexCAN_T4.h>
 
 FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> Can0;
-FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> haltech;
+FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> ecuCAN;
 
 Logger logger;
 
@@ -48,13 +48,13 @@ void setup()
   Can0.onReceive(canSniff);
   Can0.mailboxStatus();
 
-  haltech.begin();
-  haltech.setBaudRate(1000000);
-  haltech.setMaxMB(16);
-  haltech.enableFIFO();
-  haltech.enableFIFOInterrupt();
-  haltech.onReceive(ecuSniff);
-  haltech.mailboxStatus();
+  ecuCAN.begin();
+  ecuCAN.setBaudRate(1000000);
+  ecuCAN.setMaxMB(16);
+  ecuCAN.enableFIFO();
+  ecuCAN.enableFIFOInterrupt();
+  ecuCAN.onReceive(ecuSniff);
+  ecuCAN.mailboxStatus();
 
   pinMode(LED_BUILTIN, OUTPUT);
   delay(1000);
@@ -97,10 +97,9 @@ void loop() // run over and over again
   digitalWrite(LED_BUILTIN, HIGH);
 
   Can0.events();
+  ecuCAN.events();
   
-  // read data from the GPS in the 'main loop'
   char c = GPS.read();
-  // if you want to debug, this is a good time to do it!
   if (GPSECHO)
     if (c) Serial.print(c);
   // if a sentence is received, we can check the checksum, parse it...
@@ -119,19 +118,9 @@ void loop() // run over and over again
     //Serial.print("Fix: "); Serial.println((int)GPS.fix);
     //Serial.print(" quality: "); Serial.println((int)GPS.fixquality);
     if (GPS.fix) {
-      //Serial.println("fix!");
-      //Serial.print("GPS: ");
-      //Serial.print(GPS.latitude, 4); Serial.print(GPS.lat);
       logger.addData("data", "latitude", GPS.latitude);
-
-      //Serial.print(", ");
-      //Serial.print(GPS.longitude, 4); Serial.println(GPS.lon);
-
       logger.addData("data", "longitude", GPS.longitude);
-      //Serial.print("Speed (knots): "); Serial.println(GPS.speed);
-
       logger.addData("data", "ground speed (knots)", GPS.speed);
-      //Serial.print("Angle: "); Serial.println(GPS.angle);
     }
   }
 
