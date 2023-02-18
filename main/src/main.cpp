@@ -4,6 +4,7 @@
 #include <FlexCAN_T4.h>
 
 FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> Can0;
+FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> haltech;
 
 Logger logger;
 
@@ -14,6 +15,7 @@ Adafruit_GPS GPS(&GPSSerial);
 #define GPSECHO false
 
 void canSniff(const CAN_message_t &msg);
+void ecuSniff(const CAN_message_t &msg);
 
 void setup()
 {
@@ -46,6 +48,14 @@ void setup()
   Can0.onReceive(canSniff);
   Can0.mailboxStatus();
 
+  haltech.begin();
+  haltech.setBaudRate(1000000);
+  haltech.setMaxMB(16);
+  haltech.enableFIFO();
+  haltech.enableFIFOInterrupt();
+  haltech.onReceive(ecuSniff);
+  haltech.mailboxStatus();
+
   pinMode(LED_BUILTIN, OUTPUT);
   delay(1000);
 }
@@ -56,6 +66,29 @@ void canSniff(const CAN_message_t &msg) {
   reading |= msg.buf[1];
   Serial.print("Overrun: " + String(msg.flags.overrun) + "\t");
   Serial.println("CAN data: " + String(reading));
+}
+
+void ecuSniff(const CAN_message_t &msg) {
+  short rpm = 0;
+  short throttleRaw = 0;
+  float throttlePct = 0.0;
+  short gear = 0;
+  switch (msg.id) {
+    case 0x360: // RPM, throttle position
+    rpm = msg.buf[1];
+    rpm |= msg.buf[0] << 8;
+    logger.addData("data", "RPM", (float) rpm);
+
+    throttleRaw = msg.buf[5];
+    throttleRaw |= msg.buf[4] << 8;
+    throttlePct = (float) throttleRaw / 10.0;
+    logger.addData("data", "throttle (%)", throttlePct);
+    break;
+    case 0x470: // gear
+    gear = msg.buf[7];
+    logger.addData("data", "gear", (float) gear);
+    break;
+  }
 }
 
 void loop() // run over and over again
