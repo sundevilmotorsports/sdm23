@@ -55,6 +55,8 @@ class Logger {
     // writes currentRow into the actual csv file
     bool writeRow(String filename);
 
+    void readFile(String filename);
+
     protected:
     // folder to write into
     String path;
