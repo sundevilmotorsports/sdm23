@@ -27,6 +27,8 @@ void setup()
       "y acceleration (mG)",
       "z acceleration (mG)",
       "ground speed (knots)",
+      "front brake pressure (adcval)",
+      "rear brake pressure (adcval)",
       // the last two in this list should always be latitude and longitude
       "latitude",
       "longitude"
@@ -61,11 +63,20 @@ void setup()
 }
 
 void canSniff(const CAN_message_t &msg) {
-  int reading = 0;
-  reading |= msg.buf[0] << 8;
-  reading |= msg.buf[1];
-  Serial.print("Overrun: " + String(msg.flags.overrun) + "\t");
-  Serial.println("CAN data: " + String(reading));
+  int frontBrakePressureRaw = 0;
+  int rearBrakePressureRaw = 0;
+
+  switch(msg.id) {
+    case 0x363:
+    frontBrakePressureRaw = msg.buf[3];
+    frontBrakePressureRaw |= msg.buf[2] << 8;
+    rearBrakePressureRaw = msg.buf[5]; 
+    rearBrakePressureRaw |= msg.buf[4] << 8; 
+    logger.addData("data", "front brake pressure (adcval)", frontBrakePressureRaw);
+    logger.addData("data", "rear brake pressure (adcval)", rearBrakePressureRaw);
+    break;
+  }
+  Serial.println("Overrun: " + String(msg.flags.overrun));
 }
 
 void ecuSniff(const CAN_message_t &msg) {
