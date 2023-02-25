@@ -65,8 +65,21 @@ void setup()
 void canSniff(const CAN_message_t &msg) {
   int frontBrakePressureRaw = 0;
   int rearBrakePressureRaw = 0;
+  int xAccel = 0;
+  int yAccel = 0;
+  int zAccel = 0;
 
   switch(msg.id) {
+    case 0x360:
+    xAccel = (msg.buf[0] << 24) | (msg.buf[1] << 16) | (msg.buf[2] << 8) | msg.buf[3];
+    yAccel = (msg.buf[4] << 24) | (msg.buf[5] << 16) | (msg.buf[6] << 8) | msg.buf[7];
+    logger.addData("data", "x acceleration (mG)", xAccel);
+    logger.addData("data", "y acceleration (mG)", yAccel);
+    break;
+    case 0x361:
+    zAccel = (msg.buf[0] << 24) | (msg.buf[1] << 16) | (msg.buf[2] << 8) | msg.buf[3];
+    logger.addData("data", "z acceleration (mG)", zAccel);
+    break;
     case 0x363:
     frontBrakePressureRaw = msg.buf[3];
     frontBrakePressureRaw |= msg.buf[2] << 8;
