@@ -26,7 +26,12 @@ void setup()
       "x acceleration (mG)",
       "y acceleration (mG)",
       "z acceleration (mG)",
+      "x gyro (mdps)",
+      "y gyro (mdps)",
+      "z gyro (mdps)",
       "ground speed (knots)",
+      "front brake pressure (adcval)",
+      "rear brake pressure (adcval)",
       // the last two in this list should always be latitude and longitude
       "latitude",
       "longitude"
@@ -61,11 +66,44 @@ void setup()
 }
 
 void canSniff(const CAN_message_t &msg) {
-  int reading = 0;
-  reading |= msg.buf[0] << 8;
-  reading |= msg.buf[1];
-  Serial.print("Overrun: " + String(msg.flags.overrun) + "\t");
-  Serial.println("CAN data: " + String(reading));
+  int frontBrakePressureRaw = 0;
+  int rearBrakePressureRaw = 0;
+  int xAccel = 0;
+  int yAccel = 0;
+  int zAccel = 0;
+  int xGyro = 0;
+  int yGyro = 0;
+  int zGyro = 0;
+
+  switch(msg.id) {
+    case 0x360:
+    xAccel = (msg.buf[0] << 24) | (msg.buf[1] << 16) | (msg.buf[2] << 8) | msg.buf[3];
+    yAccel = (msg.buf[4] << 24) | (msg.buf[5] << 16) | (msg.buf[6] << 8) | msg.buf[7];
+    logger.addData("data", "x acceleration (mG)", xAccel);
+    logger.addData("data", "y acceleration (mG)", yAccel);
+    break;
+    case 0x361:
+    zAccel = (msg.buf[0] << 24) | (msg.buf[1] << 16) | (msg.buf[2] << 8) | msg.buf[3];
+    logger.addData("data", "z acceleration (mG)", zAccel);
+    xGyro = (msg.buf[4] << 24) | (msg.buf[5] << 16) | (msg.buf[6] << 8) | msg.buf[7];
+    logger.addData("data", "x gyro (mdps)", xGyro);
+    break;
+    case 0x362:
+    yGyro = (msg.buf[0] << 24) | (msg.buf[1] << 16) | (msg.buf[2] << 8) | msg.buf[3];
+    zGyro = (msg.buf[4] << 24) | (msg.buf[5] << 16) | (msg.buf[6] << 8) | msg.buf[7];
+    logger.addData("data", "y gyro (mdps)", yGyro);
+    logger.addData("data", "z gyro (mdps)", zGyro);
+    break;
+    case 0x363:
+    frontBrakePressureRaw = msg.buf[3];       // a8
+    frontBrakePressureRaw |= msg.buf[2] << 8;
+    rearBrakePressureRaw = msg.buf[5];        // a9
+    rearBrakePressureRaw |= msg.buf[4] << 8; 
+    logger.addData("data", "front brake pressure (adcval)", frontBrakePressureRaw);
+    logger.addData("data", "rear brake pressure (adcval)", rearBrakePressureRaw);
+    break;
+  }
+  Serial.println("Overrun: " + String(msg.flags.overrun));
 }
 
 void ecuSniff(const CAN_message_t &msg) {

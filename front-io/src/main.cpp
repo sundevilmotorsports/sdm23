@@ -22,14 +22,31 @@ void loop() {
 
   int reading = analogRead(A6);
 
+  int brakePressureFrontRaw = analogRead(A8);
+  int brakePressureRearRaw = analogRead(A9);
+
+  Serial.print("A8: ");
+  Serial.print(brakePressureFrontRaw);
+  Serial.print("\tA9: ");
+  Serial.println(brakePressureRearRaw);
+
   Can0.events();
 
   CAN_message_t msg;
   msg.id = 0x363;
+
+  // steering angle
   msg.buf[0] = reading >> 8;
-  msg.buf[1] = reading & 0xFF;
+  msg.buf[1] = reading & 0xFF; // get LSB
+
+  // front (a8 for now)
+  msg.buf[2] = brakePressureFrontRaw >> 8;
+  msg.buf[3] = brakePressureFrontRaw & 0xFF;
+
+  // rear (a9 for now)
+  msg.buf[4] = brakePressureRearRaw >> 8;
+  msg.buf[5] = brakePressureRearRaw & 0xFF;
   Can0.write(msg);
-  Serial.println(reading);
 
   delay(20);
 }
