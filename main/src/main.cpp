@@ -26,6 +26,9 @@ void setup()
       "x acceleration (mG)",
       "y acceleration (mG)",
       "z acceleration (mG)",
+      "x gyro (mdps)",
+      "y gyro (mdps)",
+      "z gyro (mdps)",
       "ground speed (knots)",
       "front brake pressure (adcval)",
       "rear brake pressure (adcval)",
@@ -68,6 +71,9 @@ void canSniff(const CAN_message_t &msg) {
   int xAccel = 0;
   int yAccel = 0;
   int zAccel = 0;
+  int xGyro = 0;
+  int yGyro = 0;
+  int zGyro = 0;
 
   switch(msg.id) {
     case 0x360:
@@ -79,11 +85,19 @@ void canSniff(const CAN_message_t &msg) {
     case 0x361:
     zAccel = (msg.buf[0] << 24) | (msg.buf[1] << 16) | (msg.buf[2] << 8) | msg.buf[3];
     logger.addData("data", "z acceleration (mG)", zAccel);
+    xGyro = (msg.buf[4] << 24) | (msg.buf[5] << 16) | (msg.buf[6] << 8) | msg.buf[7];
+    logger.addData("data", "x gyro (mdps)", xGyro);
+    break;
+    case 0x362:
+    yGyro = (msg.buf[0] << 24) | (msg.buf[1] << 16) | (msg.buf[2] << 8) | msg.buf[3];
+    zGyro = (msg.buf[4] << 24) | (msg.buf[5] << 16) | (msg.buf[6] << 8) | msg.buf[7];
+    logger.addData("data", "y gyro (mdps)", yGyro);
+    logger.addData("data", "z gyro (mdps)", zGyro);
     break;
     case 0x363:
-    frontBrakePressureRaw = msg.buf[3];
+    frontBrakePressureRaw = msg.buf[3];       // a8
     frontBrakePressureRaw |= msg.buf[2] << 8;
-    rearBrakePressureRaw = msg.buf[5]; 
+    rearBrakePressureRaw = msg.buf[5];        // a9
     rearBrakePressureRaw |= msg.buf[4] << 8; 
     logger.addData("data", "front brake pressure (adcval)", frontBrakePressureRaw);
     logger.addData("data", "rear brake pressure (adcval)", rearBrakePressureRaw);
