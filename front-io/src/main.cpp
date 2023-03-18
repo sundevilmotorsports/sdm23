@@ -36,15 +36,15 @@ void loop() {
   msg.id = 0x363;
 
   // steering angle
-  msg.buf[0] = reading >> 8;
+  msg.buf[0] = (reading & 0xFF00) >> 8;
   msg.buf[1] = reading & 0xFF; // get LSB
 
   // front (a8 for now)
-  msg.buf[2] = brakePressureFrontRaw >> 8;
+  msg.buf[2] = (brakePressureFrontRaw & 0xFF00) >> 8;
   msg.buf[3] = brakePressureFrontRaw & 0xFF;
 
   // rear (a9 for now)
-  msg.buf[4] = brakePressureRearRaw >> 8;
+  msg.buf[4] = (brakePressureRearRaw & 0xFF00) >> 8;
   msg.buf[5] = brakePressureRearRaw & 0xFF;
   Can0.write(msg);
 
