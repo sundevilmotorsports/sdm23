@@ -33,6 +33,9 @@ void setup()
       "front brake pressure (adcval)",
       "rear brake pressure (adcval)",
       "button",
+      "RPM",
+      "gear",
+      "throttle (%)",
       // the last two in this list should always be latitude and longitude
       "latitude",
       "longitude"
@@ -43,7 +46,7 @@ void setup()
 
   GPS.begin(9600);
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCONLY);
-  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_5HZ);
+  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);
   GPS.sendCommand(PMTK_SET_BAUD_9600);
 
   Can0.begin();
@@ -176,7 +179,9 @@ void loop() // run over and over again
 
   if(Serial.available() > 0){
     Serial.read();
-    logger.readFile("data");
+    //logger.readFile("data");
+    File root = SD.open("/");
+    logger.printAllFiles(root);
     Serial.println("Done reading");
   }
 
@@ -184,6 +189,10 @@ void loop() // run over and over again
   if ( millis() - timeout > 5000 ) {
     Can0.mailboxStatus();
     timeout = millis();
+
+    CAN_message_t msg;
+    msg.buf[0] = 0xFF;
+    Can0.write(msg);
   }
   logger.writeRow("data");
 }

@@ -56,6 +56,7 @@ class Logger {
     bool writeRow(String filename);
 
     void readFile(String filename);
+    void printAllFiles(File dir);
 
     protected:
     // folder to write into
