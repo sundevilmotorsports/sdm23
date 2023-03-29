@@ -32,6 +32,10 @@ void setup()
       "ground speed (knots)",
       "front brake pressure (adcval)",
       "rear brake pressure (adcval)",
+      "button",
+      "RPM",
+      "gear",
+      "throttle (%)",
       // the last two in this list should always be latitude and longitude
       "latitude",
       "longitude"
@@ -42,7 +46,7 @@ void setup()
 
   GPS.begin(9600);
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCONLY);
-  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_5HZ);
+  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);
   GPS.sendCommand(PMTK_SET_BAUD_9600);
 
   Can0.begin();
@@ -62,6 +66,7 @@ void setup()
   ecuCAN.mailboxStatus();
 
   pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(33, INPUT);
   delay(1000);
 }
 
@@ -74,6 +79,8 @@ void canSniff(const CAN_message_t &msg) {
   int xGyro = 0;
   int yGyro = 0;
   int zGyro = 0;
+  Serial.print("id: ");
+  Serial.println(msg.id, HEX);
 
   switch(msg.id) {
     case 0x360:
@@ -103,7 +110,6 @@ void canSniff(const CAN_message_t &msg) {
     logger.addData("data", "rear brake pressure (adcval)", rearBrakePressureRaw);
     break;
   }
-  Serial.println("Overrun: " + String(msg.flags.overrun));
 }
 
 void ecuSniff(const CAN_message_t &msg) {
@@ -131,8 +137,7 @@ void ecuSniff(const CAN_message_t &msg) {
 
 void loop() // run over and over again
 {
-  // ok status led
-  digitalWrite(LED_BUILTIN, HIGH);
+
 
   Can0.events();
   ecuCAN.events();
@@ -162,10 +167,32 @@ void loop() // run over and over again
     }
   }
 
+  if(digitalRead(33)) {
+    logger.addData("data", "button", (float) 1);
+    digitalWrite(LED_BUILTIN, LOW);
+  }
+  else {
+    logger.addData("data", "button", (float) 0);
+      // ok status led
+    digitalWrite(LED_BUILTIN, HIGH);
+  }
+
   if(Serial.available() > 0){
     Serial.read();
-    logger.readFile("data");
+    //logger.readFile("data");
+    File root = SD.open("/");
+    logger.printAllFiles(root);
     Serial.println("Done reading");
+  }
+
+    static uint32_t timeout = millis();
+  if ( millis() - timeout > 5000 ) {
+    Can0.mailboxStatus();
+    timeout = millis();
+
+    CAN_message_t msg;
+    msg.buf[0] = 0xFF;
+    Can0.write(msg);
   }
   logger.writeRow("data");
 }

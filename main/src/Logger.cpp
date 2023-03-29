@@ -160,7 +160,7 @@ void Logger::readFile(String filename){
 
     // Check to ensure file is opened correctly
     if(dataFile){
-        Serial.println(filename + " opened:");
+        //Serial.println(filename + " opened:");
         
         int c;
         while((c = dataFile.read()) != -1){
@@ -173,4 +173,25 @@ void Logger::readFile(String filename){
     
     // Close the file:
     dataFile.close();
+}
+
+
+void Logger::printAllFiles(File dir) {
+  while (true) {
+    File entry =  dir.openNextFile();
+    if (! entry) {
+      // no more files
+      break;
+    }
+    if (entry.isDirectory()) {
+        printAllFiles(dir);
+    } else {
+        Serial.println("File:");
+        int c;
+        while((c = entry.read()) != -1){
+            Serial.write(c);
+        }
+    }
+    entry.close();
+  }
 }
