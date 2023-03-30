@@ -179,6 +179,7 @@ void Logger::readFile(String filename){
 void Logger::printAllFiles(File dir) {
   while (true) {
     File entry =  dir.openNextFile();
+    Serial.println("hehe");
     if (! entry) {
       // no more files
       break;
