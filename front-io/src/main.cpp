@@ -19,7 +19,7 @@ void setup() {
 
   Wire.begin();
   if (!therm.begin()) {
-    Serial.println("did not start.");
+    Serial.println("did not start."); 
 
     while(1); // TODO: remove when done testing
   }
@@ -45,14 +45,19 @@ void loop() {
   Serial.print(brakePressureRearRaw);
 
   float frBrakeTemp = 0;
+  int outTemp = 0;
   if (therm.read()) {
     frBrakeTemp =  therm.object();
     Serial.print("\tAmbient: ");
     Serial.print(therm.ambient());
     Serial.print("\tTemp: ");
     Serial.println(frBrakeTemp);
+
+    outTemp = frBrakeTemp * 100;
+    Serial.println(outTemp);
   }
 
+  
   Can0.events();
 
   CAN_message_t msg;
@@ -75,12 +80,12 @@ void loop() {
   msg1.id = 0x364;
 
   // fr brake temp
-  /*
-  msg1.buf[0] = (frBrakeTemp & 0xFF000000) >> 24;
-  msg1.buf[1] = (frBrakeTemp & 0x00FF0000) >> 16;
-  msg1.buf[2] = (frBrakeTemp & 0x0000FF00) >> 8;
-  msg1.buf[3] = (frBrakeTemp & 0x000000FF);
-  */
+  
+  msg1.buf[0] = (outTemp & 0xFF000000) >> 24;
+  msg1.buf[1] = (outTemp & 0x00FF0000) >> 16;
+  msg1.buf[2] = (outTemp & 0x0000FF00) >> 8;
+  msg1.buf[3] = (outTemp & 0x000000FF);
+
 
   Can0.write(msg1);
 
