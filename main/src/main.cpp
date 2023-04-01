@@ -32,6 +32,7 @@ void setup()
       "ground speed (knots)",
       "front brake pressure (adcval)",
       "rear brake pressure (adcval)",
+      "FR brake rotor temperature (C)",
       "button",
       "RPM",
       "gear",
@@ -79,6 +80,8 @@ void canSniff(const CAN_message_t &msg) {
   int xGyro = 0;
   int yGyro = 0;
   int zGyro = 0;
+  int frBrakeTempTmp = 0;
+  float frBrakeTemperature = 0.0;
   Serial.print("id: ");
   Serial.println(msg.id, HEX);
 
@@ -109,6 +112,12 @@ void canSniff(const CAN_message_t &msg) {
     logger.addData("data", "front brake pressure (adcval)", frontBrakePressureRaw);
     logger.addData("data", "rear brake pressure (adcval)", rearBrakePressureRaw);
     break;
+    
+    case 0x364:
+    frBrakeTempTmp = (msg.buf[0] << 24) | (msg.buf[1] << 16) | (msg.buf[2] << 8) | msg.buf[3];
+    frBrakeTemperature = (float) ( (float) frBrakeTempTmp / 100.0);
+    logger.addData("data", "FR brake rotor temperature (C)", frBrakeTemperature);
+    break;
   }
 }
 
@@ -134,7 +143,7 @@ void ecuSniff(const CAN_message_t &msg) {
     break;
   }
 }
-
+char t = 0;
 void loop() // run over and over again
 {
 
@@ -176,18 +185,19 @@ void loop() // run over and over again
       // ok status led
     digitalWrite(LED_BUILTIN, HIGH);
   }
-
+  //Serial.println(t);
   if(Serial.available() > 0){
-    Serial.read();
+    t = (char) Serial.read();
     //logger.readFile("data");
+    digitalWrite(13, LOW);
     File root = SD.open("/");
     logger.printAllFiles(root);
     Serial.println("Done reading");
   }
 
-    static uint32_t timeout = millis();
+  static uint32_t timeout = millis();
   if ( millis() - timeout > 5000 ) {
-    Can0.mailboxStatus();
+    //Can0.mailboxStatus();
     timeout = millis();
 
     CAN_message_t msg;

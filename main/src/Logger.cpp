@@ -12,12 +12,11 @@ void Logger::setup(){
     // if runNo == 255, then we need to reset it since byte's max size is 255
     if(runNo == 255){
         runNo = 0;
-        path = "run0/";
+        path = "run0-";
     }
     else{
-        path = "run" + String(++runNo) + "/";
+        path = "run" + String(++runNo) + "-";
     }
-    SD.mkdir(path.c_str());
     EEPROM.write(RUN_NO_ADDR, runNo);
 }
 
@@ -179,17 +178,14 @@ void Logger::readFile(String filename){
 void Logger::printAllFiles(File dir) {
   while (true) {
     File entry =  dir.openNextFile();
-    Serial.println("hehe");
-    if (! entry) {
+    if (!entry) {
       // no more files
       break;
     }
-    if (entry.isDirectory()) {
-        printAllFiles(dir);
-    } else {
+    else if (!entry.isDirectory()) {
         Serial.println("File:");
         int c;
-        while((c = entry.read()) != -1){
+        while((c = entry.read()) != -1) {
             Serial.write(c);
         }
     }

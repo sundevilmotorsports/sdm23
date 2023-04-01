@@ -21,11 +21,11 @@ void setup() {
   if (!therm.begin()) {
     Serial.println("did not start."); 
 
-    while(1); // TODO: remove when done testing
+    //while(1); // TODO: remove when done testing
   }
 
   therm.setUnit(TEMP_C);
-  //therm.setEmissivity(0.55); // steel, perhaps
+  therm.setEmissivity(0.55); // steel, perhaps
 
   pinMode(13, OUTPUT);
 }
@@ -80,13 +80,10 @@ void loop() {
   msg1.id = 0x364;
 
   // fr brake temp
-  
   msg1.buf[0] = (outTemp & 0xFF000000) >> 24;
   msg1.buf[1] = (outTemp & 0x00FF0000) >> 16;
   msg1.buf[2] = (outTemp & 0x0000FF00) >> 8;
   msg1.buf[3] = (outTemp & 0x000000FF);
-
-
   Can0.write(msg1);
 
   delay(20);
