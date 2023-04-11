@@ -7,9 +7,9 @@ FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> Can0;
 FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> ecuCAN;
 
 Logger logger;
+char t = 'z';
 
-#define GPSSerial Serial2
-
+#define GPSSerial Serial7
 Adafruit_GPS GPS(&GPSSerial);
 
 #define GPSECHO false
@@ -29,7 +29,6 @@ void setup()
       "x gyro (mdps)",
       "y gyro (mdps)",
       "z gyro (mdps)",
-      "ground speed (knots)",
       "front brake pressure (adcval)",
       "rear brake pressure (adcval)",
       "FR brake rotor temperature (C)",
@@ -37,6 +36,7 @@ void setup()
       "RPM",
       "gear",
       "throttle (%)",
+      "ground speed (knots)",
       // the last two in this list should always be latitude and longitude
       "latitude",
       "longitude"
@@ -44,10 +44,11 @@ void setup()
   );
 
   Serial.begin(115200);
+  Serial.setTimeout(5000);
 
   GPS.begin(9600);
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCONLY);
-  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);
+  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_2HZ);
   GPS.sendCommand(PMTK_SET_BAUD_9600);
 
   Can0.begin();
@@ -82,8 +83,8 @@ void canSniff(const CAN_message_t &msg) {
   int zGyro = 0;
   int frBrakeTempTmp = 0;
   float frBrakeTemperature = 0.0;
-  Serial.print("id: ");
-  Serial.println(msg.id, HEX);
+   Serial.print("id: ");
+   Serial.println(msg.id, HEX);
 
   switch(msg.id) {
     case 0x360:
@@ -143,7 +144,7 @@ void ecuSniff(const CAN_message_t &msg) {
     break;
   }
 }
-char t = 0;
+
 void loop() // run over and over again
 {
 
@@ -156,10 +157,6 @@ void loop() // run over and over again
     if (c) Serial.print(c);
   // if a sentence is received, we can check the checksum, parse it...
   if (GPS.newNMEAreceived()) {
-    //Serial.println("new NMEA");
-    // a tricky thing here is if we print the NMEA sentence, or data
-    // we end up not listening and catching other sentences!
-    // so be very wary if using OUTPUT_ALLDATA and trying to print out data
     //Serial.print(GPS.lastNMEA()); // this also sets the newNMEAreceived() flag to false
     if (!GPS.parse(GPS.lastNMEA())) // this also sets the newNMEAreceived() flag to false
       return; // we can fail to parse a sentence in which case we should just wait for another
@@ -185,14 +182,31 @@ void loop() // run over and over again
       // ok status led
     digitalWrite(LED_BUILTIN, HIGH);
   }
-  //Serial.println(t);
   if(Serial.available() > 0){
     t = (char) Serial.read();
-    //logger.readFile("data");
+    //Serial.println(t);
     digitalWrite(13, LOW);
-    File root = SD.open("/");
-    logger.printAllFiles(root);
-    Serial.println("Done reading");
+
+    if (t == 'a') {
+      // download all files
+      File root = SD.open("/");
+      logger.printAllFiles(root);
+    }
+    else if (t == 'l') {
+      // list files
+      logger.listFiles();
+    }
+    else if (t == 's') {
+      // download specific file
+      String input = Serial.readStringUntil('-');
+      String filename = "run" + input + "-data.csv";
+      logger.printFile(filename);
+
+    }
+    else {
+      Serial.println("garbage");
+    }
+      Serial.println("Done reading");
   }
 
   static uint32_t timeout = millis();

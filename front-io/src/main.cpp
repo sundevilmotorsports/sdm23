@@ -1,14 +1,18 @@
 #include <Arduino.h>
 #include <FlexCAN_T4.h>
 #include <SparkFunMLX90614.h>
+#include <HX711.h>
 
 FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can0;
 
 IRTherm therm;
+HX711 frSG;
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
+
+  frSG.begin(9, 10);
 
   Can0.begin();
   Can0.setBaudRate(1000000);
@@ -38,11 +42,12 @@ void loop() {
 
   int brakePressureFrontRaw = analogRead(A8);
   int brakePressureRearRaw = analogRead(A9);
-
+/*
   Serial.print("A8: ");
   Serial.print(brakePressureFrontRaw);
   Serial.print("\tA9: ");
-  Serial.print(brakePressureRearRaw);
+  Serial.println(brakePressureRearRaw);
+  */
 
   float frBrakeTemp = 0;
   int outTemp = 0;
@@ -57,13 +62,20 @@ void loop() {
     Serial.println(outTemp);
   }
 
+  if(frSG.is_ready()) {
+    long strainGauge = frSG.read();
+    Serial.println(strainGauge);
+  }
+  else {
+  }
+
   
   Can0.events();
 
   CAN_message_t msg;
   msg.id = 0x363;
 
-  // steering angle
+  // steering anglef
   msg.buf[0] = (reading & 0xFF00) >> 8;
   msg.buf[1] = reading & 0xFF; // get LSB
 

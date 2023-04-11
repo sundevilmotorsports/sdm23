@@ -152,22 +152,19 @@ bool Logger::writeRow(String filename){
     }
     else return false;
 }
-void Logger::readFile(String filename){
+void Logger::printFile(String filename){
     // Opening file to be read  
-    String key = path + filename + ".csv";
-    File dataFile = SD.open(key.c_str());
+    File dataFile = SD.open(filename.c_str());
 
     // Check to ensure file is opened correctly
     if(dataFile){
-        //Serial.println(filename + " opened:");
-        
         int c;
         while((c = dataFile.read()) != -1){
             Serial.write(c);
         }
     }
     else{
-        Serial.println("Error opening " + filename + ".csv");
+        Serial.println("Error opening " + filename);
     }
     
     // Close the file:
@@ -191,4 +188,22 @@ void Logger::printAllFiles(File dir) {
     }
     entry.close();
   }
+}
+
+void Logger::listFiles() {
+    File root = SD.open("/");
+    while (true) {
+        File entry = root.openNextFile();
+
+        if (!entry) {
+            break;
+        }
+        else if (!entry.isDirectory()) {
+            Serial.print("File: ");
+            Serial.print(entry.name());
+            Serial.print("\tSize: ");
+            Serial.println(entry.size());
+        }
+        entry.close();
+    }
 }
