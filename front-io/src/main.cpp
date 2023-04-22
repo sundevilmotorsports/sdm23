@@ -7,12 +7,14 @@ FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can0;
 
 IRTherm therm;
 HX711 frSG;
+HX711 flSG;
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
 
   frSG.begin(9, 10);
+  flSG.begin(11, 12);
 
   Can0.begin();
   Can0.setBaudRate(1000000);
@@ -62,13 +64,21 @@ void loop() {
     Serial.println(outTemp);
   }
 
+  int strainGaugeR;
   if(frSG.is_ready()) {
-    long strainGauge = frSG.read();
-    Serial.println(strainGauge);
+    int strainGaugeR = static_cast<int>(frSG.read());
+    Serial.println(strainGaugeR);
   }
   else {
   }
 
+  int strainGaugeL;
+  if(flSG.is_ready()) {
+    int strainGaugeL = static_cast<int>(flSG.read());
+    Serial.println(strainGaugeL);
+  }
+  else {
+  }
   
   Can0.events();
 
@@ -97,6 +107,21 @@ void loop() {
   msg1.buf[2] = (outTemp & 0x0000FF00) >> 8;
   msg1.buf[3] = (outTemp & 0x000000FF);
   Can0.write(msg1);
+
+  CAN_message_t msg2;
+  msg2.id = 0x365;
+
+  // Strain Gauge Right and Left
+  msg2.buf[0] = (strainGaugeR & 0xFF000000) >> 24;
+  msg2.buf[1] = (strainGaugeR & 0x00FF0000) >> 16;
+  msg2.buf[2] = (strainGaugeR & 0x0000FF00) >> 8;
+  msg2.buf[3] = (strainGaugeR & 0x000000FF)
+
+  msg2.buf[4] = (strainGaugeL & 0xFF000000) >> 24;
+  msg2.buf[5] = (strainGaugeL & 0x00FF0000) >> 16;
+  msg2.buf[6] = (strainGaugeL & 0x0000FF00) >> 8;
+  msg2.buf[7] = (strainGaugeL & 0x000000FF);
+  Can0.write(msg2);
 
   delay(20);
 }
