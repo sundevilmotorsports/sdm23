@@ -41,6 +41,7 @@ void loop() {
   // put your main code here, to run repeatedly:
 
   int reading = analogRead(A6);
+  Serial.println(reading);
 
   int brakePressureFrontRaw = analogRead(A8);
   int brakePressureRearRaw = analogRead(A9);
@@ -55,27 +56,26 @@ void loop() {
   int outTemp = 0;
   if (therm.read()) {
     frBrakeTemp =  therm.object();
+    /*
     Serial.print("\tAmbient: ");
     Serial.print(therm.ambient());
     Serial.print("\tTemp: ");
     Serial.println(frBrakeTemp);
+    */
 
     outTemp = frBrakeTemp * 100;
-    Serial.println(outTemp);
   }
 
-  int strainGaugeR;
+  int strainGaugeR = 0;
   if(frSG.is_ready()) {
-    int strainGaugeR = static_cast<int>(frSG.read());
-    Serial.println(strainGaugeR);
+    strainGaugeR = static_cast<int>(frSG.read());
   }
   else {
   }
 
-  int strainGaugeL;
+  int strainGaugeL = 0;
   if(flSG.is_ready()) {
-    int strainGaugeL = static_cast<int>(flSG.read());
-    Serial.println(strainGaugeL);
+    strainGaugeL = static_cast<int>(flSG.read());
   }
   else {
   }
@@ -115,7 +115,7 @@ void loop() {
   msg2.buf[0] = (strainGaugeR & 0xFF000000) >> 24;
   msg2.buf[1] = (strainGaugeR & 0x00FF0000) >> 16;
   msg2.buf[2] = (strainGaugeR & 0x0000FF00) >> 8;
-  msg2.buf[3] = (strainGaugeR & 0x000000FF)
+  msg2.buf[3] = (strainGaugeR & 0x000000FF);
 
   msg2.buf[4] = (strainGaugeL & 0xFF000000) >> 24;
   msg2.buf[5] = (strainGaugeL & 0x00FF0000) >> 16;
