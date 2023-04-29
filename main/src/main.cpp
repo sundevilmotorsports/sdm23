@@ -17,6 +17,18 @@ Adafruit_GPS GPS(&GPSSerial);
 void canSniff(const CAN_message_t &msg);
 void ecuSniff(const CAN_message_t &msg);
 
+const float POT_IN_CONVERSION_SCALE = .00210396;
+
+
+float getLPotValue(const int potPort) {
+  float position;
+  float valOfNegative = (analogRead(potPort) - 1010);
+  float positiveValue = abs(valOfNegative);
+  position = .00210396 * (positiveValue); // convert to inches
+  position *= 25.4; // convert inches to mm
+  return position;
+}
+
 void setup()
 {
   logger.setup();
@@ -31,8 +43,11 @@ void setup()
       "z gyro (mdps)",
       "front brake pressure (adcval)",
       "rear brake pressure (adcval)",
+      "steering angle (adcval)",
       "FR brake rotor temperature (C)",
-      "button",
+      "FR Strain Gauge (adc)",
+      "FL Strain Gauge (adc)",
+      "RL Damper Position (mm)",
       "RPM",
       "gear",
       "throttle (%)",
@@ -48,7 +63,7 @@ void setup()
 
   GPS.begin(9600);
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCONLY);
-  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_2HZ);
+  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_5HZ);
   GPS.sendCommand(PMTK_SET_BAUD_9600);
 
   Can0.begin();
@@ -75,6 +90,7 @@ void setup()
 void canSniff(const CAN_message_t &msg) {
   int frontBrakePressureRaw = 0;
   int rearBrakePressureRaw = 0;
+  int steering = 0;
   int xAccel = 0;
   int yAccel = 0;
   int zAccel = 0;
@@ -82,6 +98,8 @@ void canSniff(const CAN_message_t &msg) {
   int yGyro = 0;
   int zGyro = 0;
   int frBrakeTempTmp = 0;
+  int frStrainGauge = 0;
+  int flStrainGauge = 0;
   float frBrakeTemperature = 0.0;
    Serial.print("id: ");
    Serial.println(msg.id, HEX);
@@ -110,6 +128,8 @@ void canSniff(const CAN_message_t &msg) {
     frontBrakePressureRaw |= msg.buf[2] << 8;
     rearBrakePressureRaw = msg.buf[5];        // a9
     rearBrakePressureRaw |= msg.buf[4] << 8; 
+    steering = (msg.buf[0] << 8) | msg.buf[1];
+    logger.addData("data", "steering angle (adcval)", steering);
     logger.addData("data", "front brake pressure (adcval)", frontBrakePressureRaw);
     logger.addData("data", "rear brake pressure (adcval)", rearBrakePressureRaw);
     break;
@@ -118,6 +138,13 @@ void canSniff(const CAN_message_t &msg) {
     frBrakeTempTmp = (msg.buf[0] << 24) | (msg.buf[1] << 16) | (msg.buf[2] << 8) | msg.buf[3];
     frBrakeTemperature = (float) ( (float) frBrakeTempTmp / 100.0);
     logger.addData("data", "FR brake rotor temperature (C)", frBrakeTemperature);
+    break;
+
+    case 0x365:
+    frStrainGauge = (msg.buf[0] << 24) | (msg.buf[1] << 16) | (msg.buf[2] << 8) | msg.buf[3];
+    flStrainGauge = (msg.buf[4] << 24) | (msg.buf[5] << 16) | (msg.buf[6] << 8) | msg.buf[7];
+    logger.addData("data", "FR Strain Gauge (adc)", frStrainGauge);
+    logger.addData("data", "FL Strain Gauge (adc)", flStrainGauge);
     break;
   }
 }
@@ -148,6 +175,8 @@ void ecuSniff(const CAN_message_t &msg) {
 void loop() // run over and over again
 {
 
+  digitalWrite(13, HIGH);
+
 
   Can0.events();
   ecuCAN.events();
@@ -162,26 +191,23 @@ void loop() // run over and over again
       return; // we can fail to parse a sentence in which case we should just wait for another
   }
 
-  //if(millis() - timer > 200){
-  if(true){
-    //Serial.print("Fix: "); Serial.println((int)GPS.fix);
-    //Serial.print(" quality: "); Serial.println((int)GPS.fixquality);
-    if (GPS.fix) {
-      logger.addData("data", "latitude", GPS.latitude);
-      logger.addData("data", "longitude", GPS.longitude);
-      logger.addData("data", "ground speed (knots)", GPS.speed);
+  static bool loggedTime = false;
+  if (GPS.fix) {
+    logger.addData("data", "latitude", GPS.latitude);
+    logger.addData("data", "longitude", GPS.longitude);
+    logger.addData("data", "ground speed (knots)", GPS.speed);
+
+    if (!loggedTime) {
+      logger.logTimestamp(GPS.hour, GPS.minute, GPS.seconds, GPS.year, GPS.month, GPS.day);
+      loggedTime = true;
     }
   }
 
-  if(digitalRead(33)) {
-    logger.addData("data", "button", (float) 1);
-    digitalWrite(LED_BUILTIN, LOW);
-  }
-  else {
-    logger.addData("data", "button", (float) 0);
-      // ok status led
-    digitalWrite(LED_BUILTIN, HIGH);
-  }
+  float rldamper = getLPotValue(A1);
+  //Serial.println(rldamper);
+  logger.addData("data", "RL Damper Position (mm)", rldamper);
+  
+
   if(Serial.available() > 0){
     t = (char) Serial.read();
     //Serial.println(t);
@@ -207,8 +233,9 @@ void loop() // run over and over again
       Serial.println("garbage");
     }
       Serial.println("Done reading");
-  }
+  } // end if Serial.available() > 0
 
+  /*
   static uint32_t timeout = millis();
   if ( millis() - timeout > 5000 ) {
     //Can0.mailboxStatus();
@@ -218,5 +245,6 @@ void loop() // run over and over again
     msg.buf[0] = 0xFF;
     Can0.write(msg);
   }
+  */
   logger.writeRow("data");
 }

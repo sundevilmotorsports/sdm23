@@ -13,8 +13,8 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
 
-  frSG.begin(9, 10);
-  flSG.begin(11, 12);
+  frSG.begin(11, 12);
+  flSG.begin(9, 10);
 
   Can0.begin();
   Can0.setBaudRate(1000000);
@@ -41,7 +41,7 @@ void loop() {
   // put your main code here, to run repeatedly:
 
   int reading = analogRead(A6);
-  Serial.println(reading);
+  //Serial.println(reading);
 
   int brakePressureFrontRaw = analogRead(A8);
   int brakePressureRearRaw = analogRead(A9);
@@ -69,6 +69,8 @@ void loop() {
   int strainGaugeR = 0;
   if(frSG.is_ready()) {
     strainGaugeR = static_cast<int>(frSG.read());
+    //Serial.print(strainGaugeR);
+    //Serial.print("\t");
   }
   else {
   }
@@ -76,6 +78,7 @@ void loop() {
   int strainGaugeL = 0;
   if(flSG.is_ready()) {
     strainGaugeL = static_cast<int>(flSG.read());
+    //Serial.println(strainGaugeL);
   }
   else {
   }

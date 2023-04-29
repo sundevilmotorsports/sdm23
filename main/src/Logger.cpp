@@ -128,6 +128,9 @@ bool Logger::writeRow(String filename){
             if (files[key].currentRow.size() - i <= 2) {
                 file.print(files[key].currentRow[i], 4);
             }
+            else if (i == 0) { // log timestamps with 3 decimals of precision
+                file.print(files[key].currentRow[i], 3);
+            }
             else {
                 file.print(files[key].currentRow[i]);
             }
@@ -206,4 +209,12 @@ void Logger::listFiles() {
         }
         entry.close();
     }
+}
+
+void Logger::logTimestamp(int hour, int min, int sec, int year, int month, int day) {
+    String key = path + ".txt";
+    File file = SD.open(key.c_str(), FILE_WRITE);
+    String output = String(year) + "/" + String(month) + "/" + String(day) + "-" + String(hour) + ":" + String(min) + ":" + String(sec);
+    file.println(output);
+    file.close();
 }

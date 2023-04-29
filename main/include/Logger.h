@@ -59,6 +59,8 @@ class Logger {
     void printAllFiles(File dir);
     void listFiles();
 
+    void logTimestamp(int hour, int min, int sec, int year, int month, int day);
+
     protected:
     // folder to write into
     String path;
