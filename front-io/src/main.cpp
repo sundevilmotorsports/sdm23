@@ -30,8 +30,8 @@ void setup() {
     //while(1); // TODO: remove when done testing
   }
 
-  therm.setUnit(TEMP_C);
-  therm.setEmissivity(0.55); // steel, perhaps
+  //therm.setUnit(TEMP_C);
+  //therm.setEmissivity(0.55); // steel, perhaps
 
   pinMode(13, OUTPUT);
 }
