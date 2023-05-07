@@ -17,6 +17,9 @@ Adafruit_GPS GPS(&GPSSerial);
 void canSniff(const CAN_message_t &msg);
 void ecuSniff(const CAN_message_t &msg);
 
+#define ECU_NUM_TX_MAILBOXES 2
+#define ECU_NUM_RX_MAILBOXES 6
+
 const float POT_IN_CONVERSION_SCALE = .00210396;
 
 
@@ -63,7 +66,7 @@ void setup()
 
   GPS.begin(9600);
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCONLY);
-  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_5HZ);
+  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_2HZ);
   GPS.sendCommand(PMTK_SET_BAUD_9600);
 
   Can0.begin();
@@ -72,15 +75,22 @@ void setup()
   Can0.enableFIFO();
   Can0.enableFIFOInterrupt();
   Can0.onReceive(canSniff);
-  Can0.mailboxStatus();
 
   ecuCAN.begin();
   ecuCAN.setBaudRate(1000000);
-  ecuCAN.setMaxMB(16);
-  ecuCAN.enableFIFO();
-  ecuCAN.enableFIFOInterrupt();
-  ecuCAN.onReceive(ecuSniff);
-  ecuCAN.mailboxStatus();
+  ecuCAN.setMaxMB(ECU_NUM_TX_MAILBOXES + ECU_NUM_RX_MAILBOXES);
+  for (int i = 0; i<ECU_NUM_RX_MAILBOXES; i++){
+    ecuCAN.setMB((FLEXCAN_MAILBOX)i,RX,EXT);
+  }
+  for (int i = ECU_NUM_RX_MAILBOXES; i<(ECU_NUM_TX_MAILBOXES + ECU_NUM_RX_MAILBOXES); i++){
+    ecuCAN.setMB((FLEXCAN_MAILBOX)i,TX,EXT);
+  }
+  ecuCAN.setMBFilter(REJECT_ALL);
+
+  ecuCAN.onReceive(MB0, ecuSniff);
+  ecuCAN.onReceive(MB1, ecuSniff);
+  ecuCAN.setMBFilter(MB0, 0x360);
+  ecuCAN.setMBFilter(MB1, 0x470);
 
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(33, INPUT);
@@ -88,63 +98,52 @@ void setup()
 }
 
 void canSniff(const CAN_message_t &msg) {
-  int frontBrakePressureRaw = 0;
-  int rearBrakePressureRaw = 0;
-  int steering = 0;
-  int xAccel = 0;
-  int yAccel = 0;
-  int zAccel = 0;
-  int xGyro = 0;
-  int yGyro = 0;
-  int zGyro = 0;
-  int frBrakeTempTmp = 0;
-  int frStrainGauge = 0;
-  int flStrainGauge = 0;
+  int high = 0, low = 0, mid = 0;
   float frBrakeTemperature = 0.0;
-   Serial.print("id: ");
-   Serial.println(msg.id, HEX);
+  //Serial.print("id: ");
+  //Serial.println(msg.id, HEX);
 
   switch(msg.id) {
     case 0x360:
-    xAccel = (msg.buf[0] << 24) | (msg.buf[1] << 16) | (msg.buf[2] << 8) | msg.buf[3];
-    yAccel = (msg.buf[4] << 24) | (msg.buf[5] << 16) | (msg.buf[6] << 8) | msg.buf[7];
-    logger.addData("data", "x acceleration (mG)", xAccel);
-    logger.addData("data", "y acceleration (mG)", yAccel);
+    low = (msg.buf[0] << 24) | (msg.buf[1] << 16) | (msg.buf[2] << 8) | msg.buf[3];
+    high = (msg.buf[4] << 24) | (msg.buf[5] << 16) | (msg.buf[6] << 8) | msg.buf[7];
+    logger.addData("data", "x acceleration (mG)", low);
+    logger.addData("data", "y acceleration (mG)", high);
     break;
     case 0x361:
-    zAccel = (msg.buf[0] << 24) | (msg.buf[1] << 16) | (msg.buf[2] << 8) | msg.buf[3];
-    logger.addData("data", "z acceleration (mG)", zAccel);
-    xGyro = (msg.buf[4] << 24) | (msg.buf[5] << 16) | (msg.buf[6] << 8) | msg.buf[7];
-    logger.addData("data", "x gyro (mdps)", xGyro);
+    low = (msg.buf[0] << 24) | (msg.buf[1] << 16) | (msg.buf[2] << 8) | msg.buf[3];
+    logger.addData("data", "z acceleration (mG)", low);
+    high = (msg.buf[4] << 24) | (msg.buf[5] << 16) | (msg.buf[6] << 8) | msg.buf[7];
+    logger.addData("data", "x gyro (mdps)", high);
     break;
     case 0x362:
-    yGyro = (msg.buf[0] << 24) | (msg.buf[1] << 16) | (msg.buf[2] << 8) | msg.buf[3];
-    zGyro = (msg.buf[4] << 24) | (msg.buf[5] << 16) | (msg.buf[6] << 8) | msg.buf[7];
-    logger.addData("data", "y gyro (mdps)", yGyro);
-    logger.addData("data", "z gyro (mdps)", zGyro);
+    low = (msg.buf[0] << 24) | (msg.buf[1] << 16) | (msg.buf[2] << 8) | msg.buf[3];
+    high = (msg.buf[4] << 24) | (msg.buf[5] << 16) | (msg.buf[6] << 8) | msg.buf[7];
+    logger.addData("data", "y gyro (mdps)", low);
+    logger.addData("data", "z gyro (mdps)", high);
     break;
     case 0x363:
-    frontBrakePressureRaw = msg.buf[3];       // a8
-    frontBrakePressureRaw |= msg.buf[2] << 8;
-    rearBrakePressureRaw = msg.buf[5];        // a9
-    rearBrakePressureRaw |= msg.buf[4] << 8; 
-    steering = (msg.buf[0] << 8) | msg.buf[1];
-    logger.addData("data", "steering angle (adcval)", steering);
-    logger.addData("data", "front brake pressure (adcval)", frontBrakePressureRaw);
-    logger.addData("data", "rear brake pressure (adcval)", rearBrakePressureRaw);
+    mid = msg.buf[3];
+    mid |= msg.buf[2] << 8;
+    high = msg.buf[5];
+    high |= msg.buf[4] << 8; 
+    low = (msg.buf[0] << 8) | msg.buf[1];
+    logger.addData("data", "steering angle (adcval)", low);
+    logger.addData("data", "front brake pressure (adcval)", mid);
+    logger.addData("data", "rear brake pressure (adcval)", high);
     break;
     
     case 0x364:
-    frBrakeTempTmp = (msg.buf[0] << 24) | (msg.buf[1] << 16) | (msg.buf[2] << 8) | msg.buf[3];
-    frBrakeTemperature = (float) ( (float) frBrakeTempTmp / 100.0);
+    low = (msg.buf[0] << 24) | (msg.buf[1] << 16) | (msg.buf[2] << 8) | msg.buf[3];
+    frBrakeTemperature = (float) ( (float) low / 100.0);
     logger.addData("data", "FR brake rotor temperature (C)", frBrakeTemperature);
     break;
 
     case 0x365:
-    frStrainGauge = (msg.buf[0] << 24) | (msg.buf[1] << 16) | (msg.buf[2] << 8) | msg.buf[3];
-    flStrainGauge = (msg.buf[4] << 24) | (msg.buf[5] << 16) | (msg.buf[6] << 8) | msg.buf[7];
-    logger.addData("data", "FR Strain Gauge (adc)", frStrainGauge);
-    logger.addData("data", "FL Strain Gauge (adc)", flStrainGauge);
+    low = (msg.buf[0] << 24) | (msg.buf[1] << 16) | (msg.buf[2] << 8) | msg.buf[3];
+    high = (msg.buf[4] << 24) | (msg.buf[5] << 16) | (msg.buf[6] << 8) | msg.buf[7];
+    logger.addData("data", "FR Strain Gauge (adc)", low);
+    logger.addData("data", "FL Strain Gauge (adc)", high);
     break;
   }
 }

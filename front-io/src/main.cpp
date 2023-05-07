@@ -43,14 +43,16 @@ void loop() {
   int reading = analogRead(A6);
   //Serial.println(reading);
 
-  int brakePressureFrontRaw = analogRead(A8);
-  int brakePressureRearRaw = analogRead(A9);
-/*
-  Serial.print("A8: ");
+  int brakePressureFrontRaw = analogRead(A9);
+  int brakePressureRearRaw = analogRead(A8);
+
+  /*
+  Serial.print("front: ");
   Serial.print(brakePressureFrontRaw);
-  Serial.print("\tA9: ");
+  Serial.print("\trear: ");
   Serial.println(brakePressureRearRaw);
   */
+  
 
   float frBrakeTemp = 0;
   int outTemp = 0;
@@ -62,6 +64,7 @@ void loop() {
     Serial.print("\tTemp: ");
     Serial.println(frBrakeTemp);
     */
+    
 
     outTemp = frBrakeTemp * 100;
   }
@@ -92,11 +95,9 @@ void loop() {
   msg.buf[0] = (reading & 0xFF00) >> 8;
   msg.buf[1] = reading & 0xFF; // get LSB
 
-  // front (a8 for now)
   msg.buf[2] = (brakePressureFrontRaw & 0xFF00) >> 8;
   msg.buf[3] = brakePressureFrontRaw & 0xFF;
 
-  // rear (a9 for now)
   msg.buf[4] = (brakePressureRearRaw & 0xFF00) >> 8;
   msg.buf[5] = brakePressureRearRaw & 0xFF;
   Can0.write(msg);

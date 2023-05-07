@@ -7,11 +7,11 @@ void setup(void) {
   Serial.begin(115200); delay(400);
   Can0.begin();
   Can0.setBaudRate(250000);
-  Can0.setMaxMB(NUM_TX_MAILBOXES + NUM_RX_MAILBOXES);
+  Can0.setMaxMB(EUC_NUM_TX_MAILBOXES + NUM_RX_MAILBOXES);
   for (int i = 0; i<NUM_RX_MAILBOXES; i++){
     Can0.setMB((FLEXCAN_MAILBOX)i,RX,EXT);
   }
-  for (int i = NUM_RX_MAILBOXES; i<(NUM_TX_MAILBOXES + NUM_RX_MAILBOXES); i++){
+  for (int i = NUM_RX_MAILBOXES; i<(EUC_NUM_TX_MAILBOXES + NUM_RX_MAILBOXES); i++){
     Can0.setMB((FLEXCAN_MAILBOX)i,TX,EXT);
   }
   Can0.setMBFilter(REJECT_ALL);
