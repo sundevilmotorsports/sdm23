@@ -124,9 +124,9 @@ bool Logger::writeRow(String filename){
         // print data
         for(size_t i = 0; i < files[key].currentRow.size(); i++){
             // if latitude or longitude, print with 4 decimal places
-            // both will be the last two in the list
+            // both will be the last two in the list // TODO fix after sep 10, lol
             if (files[key].currentRow.size() - i <= 2) {
-                file.print(files[key].currentRow[i], 4);
+                file.print(files[key].currentRow[i], 3);
             }
             else if (i == 0) { // log timestamps with 3 decimals of precision
                 file.print(files[key].currentRow[i], 3);
